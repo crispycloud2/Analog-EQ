@@ -29,3 +29,6 @@ scripts/__pycache__/
 *.bak
 *.dwl
 *.dwl2
+
+BP Header.SchDoc
+Pre EQ.SchDoc
