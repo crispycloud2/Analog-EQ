@@ -159,6 +159,23 @@ DItemRevisionGUID=
 GenerateClassCluster=0
 DocumentUniqueId=GILJSOYA
 
+[Document8]
+DocumentPath=Speaker Driver.SchDoc
+AnnotationEnabled=1
+AnnotateStartValue=1
+AnnotationIndexControlEnabled=0
+AnnotateSuffix=
+AnnotateScope=All
+AnnotateOrder=3
+DoLibraryUpdate=1
+DoDatabaseUpdate=1
+ClassGenCCAutoEnabled=1
+ClassGenCCAutoRoomEnabled=1
+ClassGenNCAutoScope=None
+DItemRevisionGUID=
+GenerateClassCluster=0
+DocumentUniqueId=ZYLVHWHY
+
 [GeneratedDocument1]
 DocumentPath=Project Outputs for Analog Speaker PE2\Design Rule Check - PCB Band Pass.html
 DItemRevisionGUID=
