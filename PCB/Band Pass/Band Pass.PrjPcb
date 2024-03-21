@@ -91,6 +91,10 @@ DItemRevisionGUID=
 GenerateClassCluster=0
 DocumentUniqueId=UEAFSOUT
 
+[GeneratedDocument1]
+DocumentPath=Project Outputs for Band Pass\Design Rule Check - PCB Band Pass.html
+DItemRevisionGUID=
+
 [Configuration1]
 Name=Sources
 ParameterCount=0
