@@ -25,6 +25,8 @@
 #include "stm32f7508_discovery_lcd.h"
 #include "stm32f7508_discovery_sdram.h"
 #include "stm32f7508_discovery_ts.h"
+
+#include "string.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,7 +58,12 @@ UART_HandleTypeDef huart1;
 SDRAM_HandleTypeDef hsdram1;
 
 /* USER CODE BEGIN PV */
-
+static const uint8_t DS3930E_ADDR=0x50<<1;
+static const uint8_t REG_FADER1=0xF0;
+static const uint8_t REG_FADER2=0xF1;
+static const uint8_t REG_FADER3=0xF2;
+static const uint8_t REG_FADER4=0xF3;
+static const uint8_t REG_FADER5=0xF4;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -74,12 +81,25 @@ static void MX_DMA2D_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void intscreen(){
-	BSP_LCD_SelectLayer(0);
+void writetopot(uint8_t buf[12], HAL_StatusTypeDef ret){
+	ret=HAL_I2C_Master_Transmit(&hi2c1, DS3930E_ADDR, buf, 2, HAL_MAX_DELAY);
+	if(ret!=HAL_OK){
+		strcpy((char*)buf, "Error Tx\r\n");
+	}
+	else{
+		ret=HAL_I2C_Master_Receive(&hi2c1, DS3930E_ADDR, buf, 2, HAL_MAX_DELAY);
+		if(ret!=HAL_OK){
+			strcpy((char*)buf, "Error Rx\r\n");
+		}
+	}
+	return;
+}
+void intscreen(){//draw faders and borders to the screen
+	BSP_LCD_SelectLayer(0);//set background to white
 	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
 	BSP_LCD_FillRect(0, 0, 480, 272);
 
-	for(int i=1;i<6;i++){
+	for(int i=1;i<6;i++){//draw faders
 		  BSP_LCD_SelectLayer(0);
 		  BSP_LCD_SetTextColor(LCD_COLOR_GRAY);
 		  BSP_LCD_FillRect(((480+50)/6*i)-50, 36, 50, 200);
@@ -93,41 +113,71 @@ void intscreen(){
 		  BSP_LCD_FillRect(((480+50)/6*i)-55, 133, 60, 5);
 	  }
 
-	  BSP_LCD_SelectLayer(0);
+	  BSP_LCD_SelectLayer(0);//draw borders
 	  BSP_LCD_SetTextColor(LCD_COLOR_DARKGRAY);
 	  BSP_LCD_FillRect(0, 0, 10, 272);
 	  BSP_LCD_FillRect(470, 0, 10, 272);
 	  BSP_LCD_FillRect(0, 0, 480, 10);
 	  BSP_LCD_FillRect(0, 262, 480, 10);
 }
-void moveslider(int i,int cordY, int transparent){
+void fadercontrol(int fadernr,int cordY, uint8_t buf[12], HAL_StatusTypeDef ret, int transparent){
 	static int pastcord=0;
-	if(pastcord!=cordY){
+	static uint8_t FaderValue;
+	if(pastcord!=cordY){//check if fader got moved
 		BSP_LCD_SelectLayer(1);
-		BSP_LCD_SetTextColor(transparent);
-		BSP_LCD_FillRect(((480+50)/6*i)-60, 10, 70, 262);
-		if(cordY > 36 && cordY < 236){
+		BSP_LCD_SetTextColor(transparent);//clear past fader on screen
+		BSP_LCD_FillRect(((480+50)/6*fadernr)-60, 10, 70, 262);
+		if(cordY > 36 && cordY < 236){//if fader is within the sliders position just draw to screen
 			BSP_LCD_SetTextColor(LCD_COLOR_DARKGRAY);
-			BSP_LCD_FillRect(((480+50)/6*i)-60, cordY-13, 70, 25);
+			BSP_LCD_FillRect(((480+50)/6*fadernr)-60, cordY-13, 70, 25);
 			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_FillRect(((480+50)/6*i)-55, cordY-3, 60, 5);
+			BSP_LCD_FillRect(((480+50)/6*fadernr)-55, cordY-3, 60, 5);
+			FaderValue=(((cordY-36)*255)/200);
 		}
-		else if(cordY < 36){
+		else if(cordY < 36){//if fader is above top edge draw to top most position
 			BSP_LCD_SetTextColor(LCD_COLOR_DARKGRAY);
-			BSP_LCD_FillRect(((480+50)/6*i)-60, 36-13, 70, 25);
+			BSP_LCD_FillRect(((480+50)/6*fadernr)-60, 36-13, 70, 25);
 			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_FillRect(((480+50)/6*i)-55, 36-3, 60, 5);
+			BSP_LCD_FillRect(((480+50)/6*fadernr)-55, 36-3, 60, 5);
+			FaderValue=0;
+
 		}
-		else if(cordY > 236){
+		else if(cordY > 236){//if fader is below bottom edge draw to bottom most position
 			BSP_LCD_SetTextColor(LCD_COLOR_DARKGRAY);
-			BSP_LCD_FillRect(((480+50)/6*i)-60, 236-13, 70, 25);
+			BSP_LCD_FillRect(((480+50)/6*fadernr)-60, 236-13, 70, 25);
 			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_FillRect(((480+50)/6*i)-55, 236-3, 60, 5);
+			BSP_LCD_FillRect(((480+50)/6*fadernr)-55, 236-3, 60, 5);
+			FaderValue=255;
 		}
+
+		switch (fadernr){
+		case 1:
+			buf[0]=REG_FADER1;
+			break;
+		case 2:
+			buf[0]=REG_FADER2;
+			break;
+		case 3:
+			buf[0]=REG_FADER3;
+			break;
+		case 4:
+			buf[0]=REG_FADER4;
+			break;
+		case 5:
+			buf[0]=REG_FADER5;
+			break;
+		}
+
+		FaderValue=255-FaderValue;//might delete later depends
+		buf[1]=FaderValue;
+
+		writetopot(buf, ret);
 	}
 	pastcord=cordY;
+
 	return;
 }
+
 /* USER CODE END 0 */
 
 /**
@@ -137,8 +187,10 @@ void moveslider(int i,int cordY, int transparent){
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+	HAL_StatusTypeDef ret;
 	TS_StateTypeDef TS_State;
 	unsigned int transparent=0x00000000;
+	uint8_t buf[12];
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -188,7 +240,6 @@ int main(void)
   BSP_TS_Init(480,272);
 
   intscreen();
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -198,55 +249,54 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	BSP_TS_GetState(&TS_State);
-		if(TS_State.touchDetected > 0){//see if there is a touch on the screen
-		  if(TS_State.touchX[0] > 1 && TS_State.touchX[0] < 105){//see if said touch is on the saturation and value part of the screen
-			  while(TS_State.touchDetected > 0){//as long as the press is held stay within loop
-				  moveslider(1,TS_State.touchY[0],transparent);
-				  if((((TS_State.touchY[0]-36)*255)/200)<127){
-					  BSP_LCD_SelectLayer(0);
-					  	BSP_LCD_SetTextColor(LCD_COLOR_RED);
-					  	BSP_LCD_FillRect(0, 0, 480, 272);
-				  }
-				  else{
-					  BSP_LCD_SelectLayer(0);
-					  	BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
-					  	BSP_LCD_FillRect(0, 0, 480, 272);
-				  }
-				  BSP_TS_GetState(&TS_State);
-			  }
-			  TS_State.touchX[0]=0;
- 		  }
-		  if(TS_State.touchX[0] > 106 && TS_State.touchX[0] < 194){//see if said touch is on the saturation and value part of the screen
-			  while(TS_State.touchDetected > 0){//as long as the press is held stay within loop
-				  moveslider(2,TS_State.touchY[0],transparent);
-				  BSP_TS_GetState(&TS_State);
-			  }
-			  TS_State.touchX[0]=0;
-		  }
-		  if(TS_State.touchX[0] > 195 && TS_State.touchX[0] < 282){//see if said touch is on the saturation and value part of the screen
-			  while(TS_State.touchDetected > 0){//as long as the press is held stay within loop
-				  moveslider(3,TS_State.touchY[0],transparent);
-				  BSP_TS_GetState(&TS_State);
-			  }
-			  TS_State.touchX[0]=0;
-  		  }
-		  if(TS_State.touchX[0] > 283 && TS_State.touchX[0] < 370){//see if said touch is on the saturation and value part of the screen
-			  while(TS_State.touchDetected > 0){//as long as the press is held stay within loop
-				  moveslider(4,TS_State.touchY[0],transparent);
-				  BSP_TS_GetState(&TS_State);
-			  }
-			  TS_State.touchX[0]=0;
-  		  }
-		  if(TS_State.touchX[0] > 371 && TS_State.touchX[0] < 480){//see if said touch is on the saturation and value part of the screen
-			  while(TS_State.touchDetected > 0){//as long as the press is held stay within loop
-				  moveslider(5,TS_State.touchY[0],transparent);
-				  BSP_TS_GetState(&TS_State);
-			  }
-			  TS_State.touchX[0]=0;
-   		  }
+	  BSP_TS_GetState(&TS_State);
+	  	  if(TS_State.touchDetected > 0){//see if there is a touch on the screen
+	  		  if(TS_State.touchX[0] > 0 && TS_State.touchX[0] < 105){//see if said touch is this fader's part of the screen
+	  			  while(TS_State.touchDetected > 0){//as long as the press is held stay within loop
+	  				  fadercontrol(1,TS_State.touchY[0], buf, ret, transparent);
+
+	  				  //test code
+	  				  /*
+				  	  if(test<127){
+					  	  BSP_LCD_SelectLayer(0);
+					  	  BSP_LCD_SetTextColor(LCD_COLOR_RED);
+					  	  BSP_LCD_FillRect(0, 0, 480, 272);
+				  	  }
+				  	  else if (test<=255){
+					  	  BSP_LCD_SelectLayer(0);
+					  	  BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
+					  	  BSP_LCD_FillRect(0, 0, 480, 272);
+				  	  }*/
+
+	  				  BSP_TS_GetState(&TS_State);
+	  			  }
+	  		  }
+	  		  else if(TS_State.touchX[0] > 106 && TS_State.touchX[0] < 194){//see if said touch is this fader's part of the screen
+	  			  while(TS_State.touchDetected > 0){//as long as the press is held stay within loop
+	  				  fadercontrol(2,TS_State.touchY[0], buf, ret, transparent);
+	  				  BSP_TS_GetState(&TS_State);
+	  			  }
+	  		  }
+	  		  else if(TS_State.touchX[0] > 195 && TS_State.touchX[0] < 282){//see if said touch is this fader's part of the screen
+	  			  while(TS_State.touchDetected > 0){//as long as the press is held stay within loop
+	  				  fadercontrol(3,TS_State.touchY[0], buf, ret, transparent);
+	  				  BSP_TS_GetState(&TS_State);
+	  			  }
+	  		  }
+	  		  else if(TS_State.touchX[0] > 283 && TS_State.touchX[0] < 370){//see if said touch is this fader's part of the screen
+	  			  while(TS_State.touchDetected > 0){//as long as the press is held stay within loop
+	  				  fadercontrol(4,TS_State.touchY[0], buf, ret, transparent);
+	  				  BSP_TS_GetState(&TS_State);
+	  			  }
+	  		  }
+	  		  else if(TS_State.touchX[0] > 371 && TS_State.touchX[0] < 480){//see if said touch is this fader's part of the screen
+	  			  while(TS_State.touchDetected > 0){//as long as the press is held stay within loop
+	  				  fadercontrol(5,TS_State.touchY[0], buf, ret, transparent);
+	  				  BSP_TS_GetState(&TS_State);
+	  			  }
+	  		  }
+	  	  }
   	  }
-  }
   /* USER CODE END 3 */
 }
 
