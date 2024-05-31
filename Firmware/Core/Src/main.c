@@ -82,16 +82,8 @@ static void MX_DMA2D_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 void writetopot(uint8_t buf[12], HAL_StatusTypeDef ret){
-	ret=HAL_I2C_Master_Transmit(&hi2c1, DS3930E_ADDR, buf, 2, HAL_MAX_DELAY);
-	if(ret!=HAL_OK){
-		strcpy((char*)buf, "Error Tx\r\n");
-	}
-	else{
-		ret=HAL_I2C_Master_Receive(&hi2c1, DS3930E_ADDR, buf, 2, HAL_MAX_DELAY);
-		if(ret!=HAL_OK){
-			strcpy((char*)buf, "Error Rx\r\n");
-		}
-	}
+	ret=HAL_I2C_Master_Transmit(&hi2c1, DS3930E_ADDR, buf, 2, HAL_MAX_DELAY);//write 2 bytes to I2C IC
+
 	return;
 }
 void intscreen(){//draw faders and borders to the screen
@@ -120,7 +112,7 @@ void intscreen(){//draw faders and borders to the screen
 	  BSP_LCD_FillRect(0, 0, 480, 10);
 	  BSP_LCD_FillRect(0, 262, 480, 10);
 }
-void fadercontrol(int fadernr,int cordY, uint8_t buf[12], HAL_StatusTypeDef ret, int transparent){
+uint8_t fadercontrol(int fadernr,int cordY, uint8_t buf[12], HAL_StatusTypeDef ret, int transparent){
 	static int pastcord=0;
 	static uint8_t FaderValue;
 	if(pastcord!=cordY){//check if fader got moved
@@ -132,7 +124,7 @@ void fadercontrol(int fadernr,int cordY, uint8_t buf[12], HAL_StatusTypeDef ret,
 			BSP_LCD_FillRect(((480+50)/6*fadernr)-60, cordY-13, 70, 25);
 			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
 			BSP_LCD_FillRect(((480+50)/6*fadernr)-55, cordY-3, 60, 5);
-			FaderValue=(((cordY-36)*255)/200);
+			FaderValue=(((cordY-36)*127)/200);
 		}
 		else if(cordY < 36){//if fader is above top edge draw to top most position
 			BSP_LCD_SetTextColor(LCD_COLOR_DARKGRAY);
@@ -147,10 +139,10 @@ void fadercontrol(int fadernr,int cordY, uint8_t buf[12], HAL_StatusTypeDef ret,
 			BSP_LCD_FillRect(((480+50)/6*fadernr)-60, 236-13, 70, 25);
 			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
 			BSP_LCD_FillRect(((480+50)/6*fadernr)-55, 236-3, 60, 5);
-			FaderValue=255;
+			FaderValue=127;
 		}
 
-		switch (fadernr){
+		switch (fadernr){//save address register of the fader thats being held
 		case 1:
 			buf[0]=REG_FADER1;
 			break;
@@ -168,14 +160,15 @@ void fadercontrol(int fadernr,int cordY, uint8_t buf[12], HAL_StatusTypeDef ret,
 			break;
 		}
 
-		FaderValue=255-FaderValue;//might delete later depends
+		//FaderValue=127+FaderValue;//flip the 8 bit value(might delete later depends)
+		FaderValue=255-FaderValue;
 		buf[1]=FaderValue;
 
-		writetopot(buf, ret);
+		writetopot(buf, ret);//write to potentiometer via I2C
 	}
 	pastcord=cordY;
 
-	return;
+	return(FaderValue);
 }
 
 /* USER CODE END 0 */
@@ -187,7 +180,7 @@ void fadercontrol(int fadernr,int cordY, uint8_t buf[12], HAL_StatusTypeDef ret,
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	HAL_StatusTypeDef ret;
+	HAL_StatusTypeDef ret = HAL_OK;
 	TS_StateTypeDef TS_State;
 	unsigned int transparent=0x00000000;
 	uint8_t buf[12];
@@ -240,6 +233,7 @@ int main(void)
   BSP_TS_Init(480,272);
 
   intscreen();
+  uint8_t test;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -250,53 +244,54 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  BSP_TS_GetState(&TS_State);
-	  	  if(TS_State.touchDetected > 0){//see if there is a touch on the screen
-	  		  if(TS_State.touchX[0] > 0 && TS_State.touchX[0] < 105){//see if said touch is this fader's part of the screen
-	  			  while(TS_State.touchDetected > 0){//as long as the press is held stay within loop
-	  				  fadercontrol(1,TS_State.touchY[0], buf, ret, transparent);
+	  if(TS_State.touchDetected > 0){//see if there is a touch on the screen
+		  if(TS_State.touchX[0] > 0 && TS_State.touchX[0] < 105){//see if said touch is this fader's part of the screen
+			  while(TS_State.touchDetected > 0){//as long as the press is held stay within loop
+				  test=fadercontrol(1,TS_State.touchY[0], buf, ret, transparent);
 
-	  				  //test code
-	  				  /*
-				  	  if(test<127){
-					  	  BSP_LCD_SelectLayer(0);
-					  	  BSP_LCD_SetTextColor(LCD_COLOR_RED);
-					  	  BSP_LCD_FillRect(0, 0, 480, 272);
-				  	  }
-				  	  else if (test<=255){
-					  	  BSP_LCD_SelectLayer(0);
-					  	  BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
-					  	  BSP_LCD_FillRect(0, 0, 480, 272);
-				  	  }*/
+				  //test code
+				  /*
+				  if(test<127){
+					  BSP_LCD_SelectLayer(0);
+					  BSP_LCD_SetTextColor(LCD_COLOR_RED);
+					  BSP_LCD_FillRect(0, 0, 480, 272);
+				  }
+				  else if (test<=255){
+					  BSP_LCD_SelectLayer(0);
+					  BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
+					  BSP_LCD_FillRect(0, 0, 480, 272);
+				  }
+				   */
 
-	  				  BSP_TS_GetState(&TS_State);
-	  			  }
-	  		  }
-	  		  else if(TS_State.touchX[0] > 106 && TS_State.touchX[0] < 194){//see if said touch is this fader's part of the screen
-	  			  while(TS_State.touchDetected > 0){//as long as the press is held stay within loop
-	  				  fadercontrol(2,TS_State.touchY[0], buf, ret, transparent);
-	  				  BSP_TS_GetState(&TS_State);
-	  			  }
-	  		  }
-	  		  else if(TS_State.touchX[0] > 195 && TS_State.touchX[0] < 282){//see if said touch is this fader's part of the screen
-	  			  while(TS_State.touchDetected > 0){//as long as the press is held stay within loop
-	  				  fadercontrol(3,TS_State.touchY[0], buf, ret, transparent);
-	  				  BSP_TS_GetState(&TS_State);
-	  			  }
-	  		  }
-	  		  else if(TS_State.touchX[0] > 283 && TS_State.touchX[0] < 370){//see if said touch is this fader's part of the screen
-	  			  while(TS_State.touchDetected > 0){//as long as the press is held stay within loop
-	  				  fadercontrol(4,TS_State.touchY[0], buf, ret, transparent);
-	  				  BSP_TS_GetState(&TS_State);
-	  			  }
-	  		  }
-	  		  else if(TS_State.touchX[0] > 371 && TS_State.touchX[0] < 480){//see if said touch is this fader's part of the screen
-	  			  while(TS_State.touchDetected > 0){//as long as the press is held stay within loop
-	  				  fadercontrol(5,TS_State.touchY[0], buf, ret, transparent);
-	  				  BSP_TS_GetState(&TS_State);
-	  			  }
-	  		  }
-	  	  }
-  	  }
+				  BSP_TS_GetState(&TS_State);
+			  }
+		  }
+		  else if(TS_State.touchX[0] > 106 && TS_State.touchX[0] < 194){//see if said touch is this fader's part of the screen
+			  while(TS_State.touchDetected > 0){//as long as the press is held stay within loop
+				  fadercontrol(2,TS_State.touchY[0], buf, ret, transparent);
+				  BSP_TS_GetState(&TS_State);
+			  }
+		  }
+		  else if(TS_State.touchX[0] > 195 && TS_State.touchX[0] < 282){//see if said touch is this fader's part of the screen
+			  while(TS_State.touchDetected > 0){//as long as the press is held stay within loop
+				  fadercontrol(3,TS_State.touchY[0], buf, ret, transparent);
+				  BSP_TS_GetState(&TS_State);
+			  }
+		  }
+		  else if(TS_State.touchX[0] > 283 && TS_State.touchX[0] < 370){//see if said touch is this fader's part of the screen
+			  while(TS_State.touchDetected > 0){//as long as the press is held stay within loop
+				  fadercontrol(4,TS_State.touchY[0], buf, ret, transparent);
+				  BSP_TS_GetState(&TS_State);
+			  }
+		  }
+		  else if(TS_State.touchX[0] > 371 && TS_State.touchX[0] < 480){//see if said touch is this fader's part of the screen
+			  while(TS_State.touchDetected > 0){//as long as the press is held stay within loop
+				  fadercontrol(5,TS_State.touchY[0], buf, ret, transparent);
+				  BSP_TS_GetState(&TS_State);
+			  }
+		  }
+	  }
+  }
   /* USER CODE END 3 */
 }
 
