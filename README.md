@@ -10,11 +10,11 @@ zoals eerder gezecht werkt dit project aan de hand van filters. Kort uitgelegt s
 
 ***Filter***
 
-![Filter image](Imagesandvideos/Filter.png)
+<img src='Imagesandvideos/Filter.png' width=180/>
 
 ***VCA***
 
-![VCA image](Imagesandvideos/VCA.png)
+<img src='Imagesandvideos/VCA.png' width=180/>
 
 ***Projectfotos***
 
