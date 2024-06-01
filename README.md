@@ -1,5 +1,6 @@
 # Analog-EQ
 ***DOEL***
+
 Dit project is voor een 2de jaars schoolproject van ThomasMore campus De Nayer.
 
 Het doel van mijn project is dat ik een simpele equalizer maak op basis van analoge electronica. Dit doe ik aan de hand van een aantal opamps en 4de orde actieve filters en een VCA per band.
@@ -20,4 +21,4 @@ zoals eerder gezecht werkt dit project aan de hand van filters. Kort uitgelegt s
 ***Projectvideos***
 deze video is zeer stil.
 
-![Video of working project](Imagesandvideos/Projectvideo.mov)
+<video src='Imagesandvideos/Projectvideo.mov' width=180/>
