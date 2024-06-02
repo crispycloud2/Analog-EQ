@@ -27,4 +27,4 @@ zoals eerder vermeld werkt dit project aan de hand van filters. Kort uitgelegd s
 
 deze video is zeer stil.
 
-<video src='Imagesandvideos/Projectvideo.mov' width=400/>
+<video src='https://github.com/crispycloud2/Analog-EQ/assets/76485562/d1451432-d9d7-4521-bd99-c9f82aef9ac7' width=400/>
