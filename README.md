@@ -19,13 +19,11 @@ zoals eerder vermeld werkt dit project aan de hand van filters. Kort uitgelegd s
 
 ***Project foto's***
 
-***Project video's***
-
 <img src='Imagesandvideos/PCB foto.jpg' width=400/>
 
 <img src='Imagesandvideos/Breadboard foto.jpg' width=400/>
 
-***Projectvideos***
+***Project video's***
 
 deze video is zeer stil.
 
