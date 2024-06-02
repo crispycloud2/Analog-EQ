@@ -10,15 +10,20 @@ zoals eerder gezecht werkt dit project aan de hand van filters. Kort uitgelegt s
 
 ***Filter***
 
-<img src='Imagesandvideos/Filter.png' width=180/>
+<img src='Imagesandvideos/Filter.png' width=400/>
 
 ***VCA***
 
-<img src='Imagesandvideos/VCA.png' width=180/>
+<img src='Imagesandvideos/VCA.png' width=400/>
 
 ***Projectfotos***
 
+<img src='Imagesandvideos/PCB foto.jpg' width=400/>
+
+<img src='Imagesandvideos/Breadboard foto.jpg' width=400/>
+
 ***Projectvideos***
+
 deze video is zeer stil.
 
-<video src='Imagesandvideos/Projectvideo.mov' width=180/>
+<video src='Imagesandvideos/Projectvideo.mov' width=400/>
